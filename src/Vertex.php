@@ -11,7 +11,7 @@ namespace Xenzilla\Graph;
 class Vertex {
 
     /**
-     * Array of neighboring Edges
+     * List of neighboring Edges
      * @var \SplObjectStorage
      */
     protected $neighbors;
@@ -21,6 +21,8 @@ class Vertex {
      * @var int
      */
     protected $id;
+
+    public $preorder = -1;
 
     /**
      * Init neighbors "list" as SplObjectStorage
@@ -63,7 +65,7 @@ class Vertex {
      */
     public function getNeighborVertices() {
         $neighborVertices = new \SplObjectStorage();
-        for ($i = 0; $i < count($this->neighbors); $i++) {
+        for ($i = 0; $i < $this->neighbors->count(); $i++) {
             $neighborEdge = $this->neighbors->current();
             $this->neighbors->next();
 
@@ -75,6 +77,15 @@ class Vertex {
         }
 
         return $neighborVertices;
+    }
+
+    /**
+     * Neighbor edge list
+     *
+     * @return \SplObjectStorage
+     */
+    public function getNeighborEdges() {
+        return $this->neighbors;
     }
 
     /**
