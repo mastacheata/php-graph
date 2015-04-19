@@ -17,12 +17,16 @@ class Vertex {
     protected $neighbors;
 
     /**
+     * List of neighboring Edges sorted by minimal weight
+     * @var \SplPriorityQueue
+     */
+    protected $priorityNeighbors;
+
+    /**
      * numeric identifier
      * @var int
      */
     protected $id;
-
-    public $preorder = -1;
 
     /**
      * Init neighbors "list" as SplObjectStorage
@@ -32,18 +36,22 @@ class Vertex {
      */
     public function __construct($id = -1) {
         $this->neighbors = new \SplObjectStorage();
+        $this->priorityNeighbors = new \SplPriorityQueue();
+        $this->priorityNeighbors->setExtractFlags(\SplPriorityQueue::EXTR_BOTH);
         $this->id = intval($id);
     }
 
     /**
      * Connect this vertex to another one
      * create a new edge and add it to the neighbor list of both vertices
+     * optionally set the weight of this edge
      *
      * @param Vertex $to
+     * @param int $weight
      * @return Edge
      */
-    public function connect(Vertex $to) {
-        $edge = new Edge($this, $to);
+    public function connect(Vertex $to, $weight = 0) {
+        $edge = new Edge($this, $to, $weight);
         $this->connectEdge($edge);
 
         return $edge;
@@ -56,6 +64,8 @@ class Vertex {
      */
     public function connectEdge(Edge $neighbor) {
         $this->neighbors->attach($neighbor);
+        // SplPriorityQueue is using a MaxHeap, we want the minimum value first, so order by inverse
+        $this->priorityNeighbors->insert($neighbor, 1 / $neighbor->getWeight());
     }
 
     /**
@@ -68,13 +78,9 @@ class Vertex {
         for ($i = 0; $i < $this->neighbors->count(); $i++) {
             $neighborEdge = $this->neighbors->current();
             $this->neighbors->next();
-
-            $a = $neighborEdge->getA();
-            $b = $neighborEdge->getB();
-
-            $neighborVertices->attach($a/*, (string) $a*/);
-            $neighborVertices->attach($b/*, (string) $b*/);
+            $neighborVertices->attach($neighborEdge->getB());
         }
+        $neighborVertices->rewind();
 
         return $neighborVertices;
     }
@@ -85,7 +91,18 @@ class Vertex {
      * @return \SplObjectStorage
      */
     public function getNeighborEdges() {
+        $this->neighbors->rewind();
         return $this->neighbors;
+    }
+
+    /**
+     * Sorted Neighbor edge list
+     *
+     * @return \SplPriorityQueue
+     */
+    public function getPriorityNeighborEdges() {
+        $this->priorityNeighbors->rewind();
+        return $this->priorityNeighbors;
     }
 
     /**

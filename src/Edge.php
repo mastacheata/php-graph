@@ -23,13 +23,23 @@ class Edge {
     protected $vertexB;
 
     /**
+     * Weight of this edge
+     * @var int
+     */
+    protected $weight;
+
+    /**
      * Create a new edge between two vertices A and B
+     * optionally set the weight of the new edge
+     *
      * @param Vertex $a
      * @param Vertex $b
+     * @param int $weight
      */
-    public function __construct(Vertex $a, Vertex $b) {
+    public function __construct(Vertex $a, Vertex $b, $weight = 0) {
         $this->vertexA = $a;
         $this->vertexB = $b;
+        $this->weight  = $weight;
     }
 
     public function getA() {
@@ -38,5 +48,9 @@ class Edge {
 
     public function getB() {
         return $this->vertexB;
+    }
+
+    public function getWeight() {
+        return $this->weight;
     }
 }

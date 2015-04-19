@@ -12,6 +12,7 @@ class Graph {
 
     const EDGE_LIST = 1;
     const ADJACENCY_MATRIX = 2;
+    const WEIGHTED_EDGE_LIST = 3;
 
     const DIRECTED = true;
     const UNDIRECTED = false;
@@ -24,7 +25,7 @@ class Graph {
 
     /**
      * List of vertices
-     * @var array
+     * @var Vertex[]
      */
     protected $vertexList = [];
 
@@ -73,6 +74,9 @@ class Graph {
                 case self::ADJACENCY_MATRIX:
                     self::importAdjacencyMatrix($handle, $graph->getVertexList(), $edgeList, $directed);
                     break;
+                case self::WEIGHTED_EDGE_LIST:
+                    self::importWeightedEdgeList($handle, $graph->getVertexList(), $edgeList, $directed);
+                    break;
             }
 
             fclose($handle);
@@ -87,7 +91,7 @@ class Graph {
      * Import EdgeList (2xN)
      *
      * @param resource $handle
-     * @param array $vertices
+     * @param Vertex[] $vertices
      * @param \SplObjectStorage $edgeList
      * @param bool $directed
      */
@@ -115,7 +119,7 @@ class Graph {
      * Import Adjacency Matrix (NxN)
      *
      * @param resource $handle
-     * @param array $vertices
+     * @param Vertex[] $vertices
      * @param \SplObjectStorage $edgeList
      * @param bool $directed
      */
@@ -146,6 +150,34 @@ class Graph {
     }
 
     /**
+     * Import EdgeList (2xN)
+     *
+     * @param resource $handle
+     * @param Vertex[] $vertices
+     * @param \SplObjectStorage $edgeList
+     * @param bool $directed
+     */
+    protected static function importWeightedEdgeList($handle, array &$vertices, \SplObjectStorage $edgeList, $directed)
+    {
+        while ($line = trim(fgets($handle))) {
+            list($from, $to, $weight) = explode("\t", $line);
+
+            if (!array_key_exists($from, $vertices)) {
+                $vertices[$from] = new Vertex($from);
+            }
+            if (!array_key_exists($to, $vertices)) {
+                $vertices[$to] = new Vertex($to);
+            }
+
+            $edgeList->attach($vertices[$from]->connect($vertices[$to], $weight));
+            // if undirected add the opposite link implicitly
+            if (!$directed) {
+                $edgeList->attach($vertices[$to]->connect($vertices[$from], $weight));
+            }
+        }
+    }
+
+    /**
      * Perform a depth-first-search starting at the supplied vertex
      *
      * @param Vertex $v
@@ -160,10 +192,6 @@ class Graph {
             if (is_null($neighborEdge)) {
                 continue;
             }
-            $a = $neighborEdge->getA();
-            if (!array_key_exists((string) $a, $visited)) {
-                $visited = $this->dfs($a, $visited);
-            }
 
             $b = $neighborEdge->getB();
             if (!array_key_exists((string) $b, $visited)) {
@@ -173,49 +201,77 @@ class Graph {
         return $visited;
     }
 
-    public function findComponents(Vertex $v, &$s = [], &$p = [], &$c = 0, &$componentVertices = []) {
-        $components = [];
-        $v->preorder = $c++;
-        $s[] = $v;
-        $p[] = $v;
-
-        foreach($v->getNeighborEdges() as $neighbor) {
-            $w = $neighbor->getA();
-            if ($w->preorder < 0) {
-                $components = array_merge($components, $this->findComponents($w, $s, $p, $c, $componentVertices));
-            }
-            elseif (!in_array($w, $componentVertices)) {
-                while ((($top = end($p)) !== null) && ($top->preorder > $w->preorder)) {
-                    array_pop($p);
-                }
+    public function bfs(Vertex $v) {
+        $queue = new \SplQueue();
+        $queue->enqueue($v);
+        $visited = array();
+        do {
+            $current = $queue->dequeue();
+            if (array_key_exists((string) $current, $visited)) {
+                continue;
             }
 
-            $w = $neighbor->getB();
-            if ($w->preorder < 0) {
-                $components = array_merge($components, $this->findComponents($w, $s, $p, $c, $componentVertices));
+            $visited[(string) $current] = $current;
+
+            /** @var \SplObjectStorage $neighbors */
+            $neighbors = $current->getNeighborEdges();
+            for ($i = 0; $i < $neighbors->count(); $i++) {
+                $neighborEdge = $neighbors->current();
+                $neighbors->next();
+
+                $queue->enqueue($neighborEdge->getB());
             }
-            elseif (!in_array($w, $componentVertices)) {
-                while ((($top = end($p)) !== null) && ($top->preorder > $w->preorder)) {
-                    array_pop($p);
-                }
-            }
+        } while ($queue->valid());
+
+        return $visited;
+    }
+
+    /**
+     * Find an MST for a given graph using algorithm of Prim
+     * returns an array with the MST and the total weight
+     *
+     * @return array
+     */
+    public function prim() {
+        $mst = [];
+        $totalWeight = 0;
+        $remainingNodes = new \SplPriorityQueue;
+
+        // Build a Priority Queue of all Nodes not yet in MST
+        // Weights are set to PHP_INT_MAX, which should be more than every "real" weight
+        /** @var Vertex $vertex */
+        foreach ($this->vertexList as $vertex) {
+            $remainingNodes->insert($vertex, PHP_INT_MAX);
         }
 
-        if ($v === end($p)) {
-            $component = [];
+//        $totalWeight -= $remainingNodes->top()->getWeight();
+        do {
+            $v = $remainingNodes->extract();
+            $mst[(string) $v] = $v;
+//            $totalWeight += $v->getWeight();
+            /** @var \SplPriorityQueue $leavingEdges */
+            $leavingEdges = $v->getPriorityNeighborEdges();
+            $minEdge = null;
+            $element = null;
+            $found = true;
             do {
-                $pop = array_pop($s);
-                if (!is_null($pop)) {
-                    $component[] = $pop;
+                if (!$leavingEdges->valid()) {
+                    $found = false;
+                    break;
                 }
-            }
-            while (end($component) !== $v);
-            array_pop($p);
-            $componentVertices = array_merge($componentVertices, $component);
-            $components[] = $component;
-        }
+                $element = $leavingEdges->extract();
 
-        return $components;
+                /** @var Edge $minEdge */
+                $minEdge = $element['data'];
+            } while (array_key_exists((string) $minEdge->getB(), $mst) || !empty(array_intersect_key($this->dfs($minEdge->getB()), $mst)));
+
+            if ($found) {
+                $mst[(string) $minEdge->getB()] = $minEdge->getB();
+                $totalWeight += $element['priority'];
+            }
+        } while (count($mst) < $remainingNodes->count());
+
+        return [$mst, $totalWeight];
     }
 
     /**
@@ -225,7 +281,7 @@ class Graph {
     public function __toString() {
         $edgeList = '';
         foreach($this->edgeList as $edge) {
-            $edgeList .= print_r($edge->getA() . ' -> ' . $edge->getB(), true). "\n";
+            $edgeList .= print_r($edge->getA() . ' -> ' . $edge->getB() . ' # ' . $edge->getWeight(), true). "\n";
         }
 
         return $edgeList;
