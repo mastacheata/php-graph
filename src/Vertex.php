@@ -37,7 +37,6 @@ class Vertex {
     public function __construct($id = -1) {
         $this->neighbors = new \SplObjectStorage();
         $this->priorityNeighbors = new \SplPriorityQueue();
-        $this->priorityNeighbors->setExtractFlags(\SplPriorityQueue::EXTR_BOTH);
         $this->id = intval($id);
     }
 
@@ -65,7 +64,13 @@ class Vertex {
     public function connectEdge(Edge $neighbor) {
         $this->neighbors->attach($neighbor);
         // SplPriorityQueue is using a MaxHeap, we want the minimum value first, so order by inverse
-        $this->priorityNeighbors->insert($neighbor, 1 / $neighbor->getWeight());
+        if ($neighbor->getWeight() == 0) {
+            $priority = 0;
+        }
+        else {
+            $priority = 1 / $neighbor->getWeight();
+        }
+        $this->priorityNeighbors->insert($neighbor, $priority);
     }
 
     /**
@@ -101,8 +106,16 @@ class Vertex {
      * @return \SplPriorityQueue
      */
     public function getPriorityNeighborEdges() {
-        $this->priorityNeighbors->rewind();
         return $this->priorityNeighbors;
+    }
+
+    /**
+     * Get the numeric identifier of this vertex
+     *
+     * @return int
+     */
+    public function getId() {
+        return $this->id;
     }
 
     /**

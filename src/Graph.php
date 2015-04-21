@@ -24,6 +24,12 @@ class Graph {
     protected $edgeList;
 
     /**
+     * Priority Queue with all Edges ordered by 1/weight
+     * @var \SplPriorityQueue
+     */
+    protected $priorityEdgeList;
+
+    /**
      * List of vertices
      * @var Vertex[]
      */
@@ -75,7 +81,9 @@ class Graph {
                     self::importAdjacencyMatrix($handle, $graph->getVertexList(), $edgeList, $directed);
                     break;
                 case self::WEIGHTED_EDGE_LIST:
-                    self::importWeightedEdgeList($handle, $graph->getVertexList(), $edgeList, $directed);
+                    $priorityEdgeList = new \SplPriorityQueue();
+                    self::importWeightedEdgeList($handle, $graph->getVertexList(), $edgeList, $directed, $priorityEdgeList);
+                    $graph->setPriorityEdgeList($priorityEdgeList);
                     break;
             }
 
@@ -156,8 +164,9 @@ class Graph {
      * @param Vertex[] $vertices
      * @param \SplObjectStorage $edgeList
      * @param bool $directed
+     * @param \SplPriorityQueue $edges
      */
-    protected static function importWeightedEdgeList($handle, array &$vertices, \SplObjectStorage $edgeList, $directed)
+    protected static function importWeightedEdgeList($handle, array &$vertices, \SplObjectStorage $edgeList, $directed, \SplPriorityQueue $edges)
     {
         while ($line = trim(fgets($handle))) {
             list($from, $to, $weight) = explode("\t", $line);
@@ -169,10 +178,21 @@ class Graph {
                 $vertices[$to] = new Vertex($to);
             }
 
-            $edgeList->attach($vertices[$from]->connect($vertices[$to], $weight));
+            if ($weight == 0) {
+                $priority = $weight;
+            }
+            else {
+                $priority = 1 / $weight;
+            }
+            $edge = $vertices[$from]->connect($vertices[$to], $weight);
+            $edges->insert($edge, $priority);
+            $edgeList->attach($edge);
+
             // if undirected add the opposite link implicitly
             if (!$directed) {
-                $edgeList->attach($vertices[$to]->connect($vertices[$from], $weight));
+                $edge = $vertices[$to]->connect($vertices[$from], $weight);
+                $edges->insert($edge, $priority);
+                $edgeList->attach($edge);
             }
         }
     }
@@ -185,7 +205,7 @@ class Graph {
      * @return array
      */
     public function dfs(Vertex $v, array $visited = []) {
-        $visited[(string) $v] = $v;
+        $visited[$v->getId()] = $v;
         $neighbors = $v->getNeighborEdges();
 
         foreach ($neighbors as $neighborEdge) {
@@ -193,8 +213,9 @@ class Graph {
                 continue;
             }
 
+            /** @var Vertex $b */
             $b = $neighborEdge->getB();
-            if (!array_key_exists((string) $b, $visited)) {
+            if (!array_key_exists($b->getId(), $visited)) {
                 $visited = $this->dfs($b, $visited);
             }
         }
@@ -207,11 +228,11 @@ class Graph {
         $visited = array();
         do {
             $current = $queue->dequeue();
-            if (array_key_exists((string) $current, $visited)) {
+            if (array_key_exists($current->getId(), $visited)) {
                 continue;
             }
 
-            $visited[(string) $current] = $current;
+            $visited[$current->getId()] = $current;
 
             /** @var \SplObjectStorage $neighbors */
             $neighbors = $current->getNeighborEdges();
@@ -233,45 +254,67 @@ class Graph {
      * @return array
      */
     public function prim() {
-        $mst = [];
+        $vertices = [];
+        $toVisit = new \SplPriorityQueue();
+        $startVertex = $this->getVertex();
+        $toVisit->insert(new Edge($startVertex, $startVertex, 0), 0);
         $totalWeight = 0;
-        $remainingNodes = new \SplPriorityQueue;
 
-        // Build a Priority Queue of all Nodes not yet in MST
-        // Weights are set to PHP_INT_MAX, which should be more than every "real" weight
-        /** @var Vertex $vertex */
-        foreach ($this->vertexList as $vertex) {
-            $remainingNodes->insert($vertex, PHP_INT_MAX);
+        while (count($vertices) < $this->vertexCount) {
+            /** @var Edge $currentEdge */
+            $currentEdge = $toVisit->extract();
+
+            // Skip processing an Edge if we already have the cheapest edge for that endpoint
+            if (array_key_exists($currentEdge->getB()->getId(), $vertices)) {
+                continue;
+            }
+
+            /** @var \SplPriorityQueue $neighborEdges */
+            $neighborEdges = $currentEdge->getB()->getPriorityNeighborEdges();
+            while ($neighborEdges->valid()) {
+                $neighborEdge = $neighborEdges->extract();
+
+                if (!array_key_exists($neighborEdge->getB()->getId(), $vertices)) {
+                    if ($neighborEdge->getWeight() == 0) {
+                        $priority = 0;
+                    }
+                    else {
+                        $priority = 1 / $neighborEdge->getWeight();
+                    }
+                    $toVisit->insert($neighborEdge, $priority);
+                }
+            }
+
+            $totalWeight += $currentEdge->getWeight();
+            $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
         }
 
-//        $totalWeight -= $remainingNodes->top()->getWeight();
-        do {
-            $v = $remainingNodes->extract();
-            $mst[(string) $v] = $v;
-//            $totalWeight += $v->getWeight();
-            /** @var \SplPriorityQueue $leavingEdges */
-            $leavingEdges = $v->getPriorityNeighborEdges();
-            $minEdge = null;
-            $element = null;
-            $found = true;
-            do {
-                if (!$leavingEdges->valid()) {
-                    $found = false;
-                    break;
-                }
-                $element = $leavingEdges->extract();
+        return $totalWeight;
+    }
 
-                /** @var Edge $minEdge */
-                $minEdge = $element['data'];
-            } while (array_key_exists((string) $minEdge->getB(), $mst) || !empty(array_intersect_key($this->dfs($minEdge->getB()), $mst)));
 
-            if ($found) {
-                $mst[(string) $minEdge->getB()] = $minEdge->getB();
-                $totalWeight += $element['priority'];
+    public function kruskal() {
+        $nodes = [];
+        $edgeSet = new \SplObjectStorage();
+        $totalWeight = 0;
+        $priorityEdgeList = clone $this->priorityEdgeList;
+
+        foreach($this->vertexList as $vertex) {
+            $nodes[$vertex->getId()] = new Node($vertex);
+        }
+
+        while ($priorityEdgeList->valid()) {
+            $currentEdge = $priorityEdgeList->extract();
+            $nodeA = $nodes[$currentEdge->getA()->getId()];
+            $nodeB = $nodes[$currentEdge->getB()->getId()];
+            if (UnionFind::find($nodeA) !== UnionFind::find($nodeB)) {
+                $edgeSet->attach($currentEdge);
+                $totalWeight += $currentEdge->getWeight();
+                UnionFind::union($nodeA, $nodeB);
             }
-        } while (count($mst) < $remainingNodes->count());
+        }
 
-        return [$mst, $totalWeight];
+        return $totalWeight;
     }
 
     /**
@@ -290,10 +333,19 @@ class Graph {
     /**
      * Set the edge list from external
      *
-     * @param $edgeList
+     * @param \SplObjectStorage $edgeList
      */
-    public function setEdgeList($edgeList) {
+    public function setEdgeList(\SplObjectStorage $edgeList) {
         $this->edgeList = $edgeList;
+    }
+
+    /**
+     * Set the priority edge list from external
+     *
+     * @param \SplPriorityQueue $priorityEdgeList
+     */
+    public function setPriorityEdgeList(\SplPriorityQueue $priorityEdgeList) {
+        $this->priorityEdgeList = $priorityEdgeList;
     }
 
     /**
