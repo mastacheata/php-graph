@@ -249,12 +249,14 @@ class Graph {
 
     /**
      * Find an MST for a given graph using algorithm of Prim
-     * returns an array with the MST and the total weight
+     * Uses a priority Queue to store the remaining Edges
+     * returns the total weight of the MST
      *
-     * @return array
+     * @return float
      */
     public function prim() {
         $vertices = [];
+        $edgeSet = new \SplObjectStorage();
         $toVisit = new \SplPriorityQueue();
         $startVertex = $this->getVertex();
         $toVisit->insert(new Edge($startVertex, $startVertex, 0), 0);
@@ -275,24 +277,34 @@ class Graph {
                 $neighborEdge = $neighborEdges->extract();
 
                 if (!array_key_exists($neighborEdge->getB()->getId(), $vertices)) {
+                    // Handle "0 weight" (priority = 1/weight)
                     if ($neighborEdge->getWeight() == 0) {
                         $priority = 0;
                     }
                     else {
                         $priority = 1 / $neighborEdge->getWeight();
                     }
+                    // priority queue returns the element with the max priority first
                     $toVisit->insert($neighborEdge, $priority);
                 }
             }
-
+            $edgeSet->attach($currentEdge);
             $totalWeight += $currentEdge->getWeight();
             $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
         }
 
+        // return $edgeSet;
         return $totalWeight;
     }
 
 
+    /**
+     * Find an MST for a given Graph using the algorithm of Kruskal
+     * Makes use of a UnionFind structure @see UnionFind
+     * returns the total weight of the mst
+     *
+     * @return float
+     */
     public function kruskal() {
         $nodes = [];
         $edgeSet = new \SplObjectStorage();
@@ -314,6 +326,7 @@ class Graph {
             }
         }
 
+        // return $edgeSet
         return $totalWeight;
     }
 
