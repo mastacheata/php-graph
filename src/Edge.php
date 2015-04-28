@@ -11,6 +11,12 @@ namespace Xenzilla\Graph;
 class Edge {
 
     /**
+     * Identifier for this edge (A->id_B->id)
+     * @var string
+     */
+    protected $id;
+
+    /**
      * First adjacent vertex
      * @var Vertex
      */
@@ -40,6 +46,7 @@ class Edge {
         $this->vertexA = $a;
         $this->vertexB = $b;
         $this->weight  = $weight;
+        $this->id = $a->getId().'_'.$b->getId();
     }
 
     public function getA() {
@@ -52,5 +59,9 @@ class Edge {
 
     public function getWeight() {
         return $this->weight;
+    }
+
+    public function getId() {
+        return $this->id;
     }
 }

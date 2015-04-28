@@ -17,6 +17,12 @@ class Vertex {
     protected $neighbors;
 
     /**
+     * Array of indexed neighbors
+     * @var Edge[]
+     */
+    protected $indexedNeighbors = [];
+
+    /**
      * List of neighboring Edges sorted by minimal weight
      * @var \SplPriorityQueue
      */
@@ -61,8 +67,9 @@ class Vertex {
      *
      * @param Edge $neighbor
      */
-    public function connectEdge(Edge $neighbor) {
+    private function connectEdge(Edge $neighbor) {
         $this->neighbors->attach($neighbor);
+        $this->indexedNeighbors[$neighbor->getId()] = $neighbor;
         // SplPriorityQueue is using a MaxHeap, we want the minimum value first, so order by inverse
         if ($neighbor->getWeight() == 0) {
             $priority = 0;
@@ -98,6 +105,15 @@ class Vertex {
     public function getNeighborEdges() {
         $this->neighbors->rewind();
         return $this->neighbors;
+    }
+
+    /**
+     * Indexed neighbor edge list
+     *
+     * @return Edge[]
+     */
+    public function getIndexedNeighbors() {
+        return $this->indexedNeighbors;
     }
 
     /**

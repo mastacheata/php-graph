@@ -17,6 +17,13 @@ class Graph {
     const DIRECTED = true;
     const UNDIRECTED = false;
 
+    const RETURN_EDGES = 1;
+    const RETURN_VERTICES = 2;
+    const RETURN_WEIGHT = 3;
+    const RETURN_ALL = 4;
+    const RETURN_GRAPH = 5;
+
+
     /**
      * List of edges (unique)
      * @var \SplObjectStorage
@@ -51,6 +58,48 @@ class Graph {
     public function __construct($vertexCount = 0) {
         $this->edgeList = new \SplObjectStorage();
         $this->vertexCount = $vertexCount;
+    }
+
+    /**
+     * Build a new Graph from an Edge set
+     *
+     * @param Edge[] $edgeSet
+     * @param int $count
+     * @param bool $directed
+     * @return Graph
+     */
+    public static function build_from_edges(array $edgeSet, $count, $directed = TRUE) {
+        $graph = new Graph($count);
+        $edgeList = $graph->getEdgeList();
+        /** @var Vertex[] $vertices */
+        $vertices = $graph->getVertexList();
+
+        foreach($edgeSet as $edge) {
+            $from = $edge->getA()->getId();
+            if (!array_key_exists($from, $vertices)) {
+                $vertices[$from] = new Vertex($from);
+            }
+            $to = $edge->getB()->getId();
+            if (!array_key_exists($to, $vertices)) {
+                $vertices[$to] = new Vertex($to);
+            }
+
+            $weight = $edge->getWeight();
+
+            $edgeA = $vertices[$from]->connect($vertices[$to], $weight);
+            $edgeList->attach($edgeA);
+
+            // if undirected add the opposite link implicitly
+            if (!$directed) {
+                $edgeB = $vertices[$to]->connect($vertices[$from], $weight);
+                $edgeList->attach($edgeB);
+            }
+        }
+
+        ksort($vertices);
+        $graph->setVertexList($vertices);
+
+        return $graph;
     }
 
     /**
@@ -202,7 +251,7 @@ class Graph {
      *
      * @param Vertex $v
      * @param array $visited
-     * @return array
+     * @return Vertex[]
      */
     public function dfs(Vertex $v, array $visited = []) {
         $visited[$v->getId()] = $v;
@@ -222,9 +271,15 @@ class Graph {
         return $visited;
     }
 
-    public function bfs(Vertex $v) {
+    /**
+     * Perform a breadth-first-search starting at the supplied vertex
+     *
+     * @param Vertex $start
+     * @return Vertex[]
+     */
+    public function bfs(Vertex $start) {
         $queue = new \SplQueue();
-        $queue->enqueue($v);
+        $queue->enqueue($start);
         $visited = array();
         do {
             $current = $queue->dequeue();
@@ -252,13 +307,15 @@ class Graph {
      * Uses a priority Queue to store the remaining Edges
      * returns the total weight of the MST
      *
-     * @return float
+     * @param Vertex $start
+     * @param int $return
+     * @return float|\SplObjectStorage
      */
-    public function prim() {
+    public function prim(Vertex $start = null, $return = self::RETURN_WEIGHT) {
         $vertices = [];
         $edgeSet = new \SplObjectStorage();
         $toVisit = new \SplPriorityQueue();
-        $startVertex = $this->getVertex();
+        $startVertex = $start === null ? $start : $this->getVertex();
         $toVisit->insert(new Edge($startVertex, $startVertex, 0), 0);
         $totalWeight = 0;
 
@@ -293,7 +350,15 @@ class Graph {
             $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
         }
 
-        // return $edgeSet;
+        switch ($return) {
+            case self::RETURN_WEIGHT:
+                return $totalWeight;
+            case self::RETURN_EDGES:
+                return $edgeSet;
+            case self::RETURN_VERTICES:
+                return $vertices;
+        }
+
         return $totalWeight;
     }
 
@@ -303,10 +368,13 @@ class Graph {
      * Makes use of a UnionFind structure @see UnionFind
      * returns the total weight of the mst
      *
-     * @return float
+     * @param int $return
+     * @return float|\SplObjectStorage
+     * @throws \ErrorException
      */
-    public function kruskal() {
+    public function kruskal($return = self::RETURN_WEIGHT) {
         $nodes = [];
+        $vertices = [];
         $edgeSet = new \SplObjectStorage();
         $totalWeight = 0;
         $priorityEdgeList = clone $this->priorityEdgeList;
@@ -321,12 +389,159 @@ class Graph {
             $nodeB = $nodes[$currentEdge->getB()->getId()];
             if (UnionFind::find($nodeA) !== UnionFind::find($nodeB)) {
                 $edgeSet->attach($currentEdge);
+                $vertices[$currentEdge->getA()->getId()] = $currentEdge->getA();
+                $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
                 $totalWeight += $currentEdge->getWeight();
                 UnionFind::union($nodeA, $nodeB);
             }
         }
 
-        // return $edgeSet
+        switch($return) {
+            case self::RETURN_WEIGHT:
+                return $totalWeight;
+            case self::RETURN_EDGES:
+                return $edgeSet;
+            case self::RETURN_VERTICES:
+                return $vertices;
+            case self::RETURN_ALL:
+                return ['edges' => $edgeSet, 'vertices' => $vertices, 'weight' => $totalWeight];
+        }
+
+        return $totalWeight;
+    }
+
+    /**
+     * Find a TSP route using the nearest neighbor heuristic
+     *
+     * @param int $start
+     * @param int $return
+     * @return float|\SplObjectStorage
+     */
+    public function nearestNeighbor($start = -1, $return = self::RETURN_WEIGHT) {
+        $vertices = [];
+        $visited = new \SplObjectStorage();
+        $current = $startV = $this->getVertex($start);
+        $visited->attach($current, 0);
+        $vertices[$current->getId()] = $current;
+        $totalWeight = 0;
+
+        do {
+            $neighbors = $current->getPriorityNeighborEdges();
+            $currentEdge = null;
+            do {
+                /** @var Edge $currentEdge **/
+                $currentEdge = $neighbors->extract();
+                $current = $currentEdge->getB();
+            }
+            while (array_key_exists($current->getId(), $vertices));
+
+            $visited->attach($current, $currentEdge->getWeight());
+            $totalWeight += $currentEdge->getWeight();
+            $vertices[$current->getId()] = $current;
+        }
+        while ($visited->count() < $this->getVertexCount());
+
+        // connect last node to first node
+        $lastNeighbors = $current->getNeighborEdges();
+        foreach($lastNeighbors as $neighborEdge) {
+            if ($neighborEdge->getB()->getId() === $startV->getId()) {
+                $totalWeight += $neighborEdge->getWeight();
+                break;
+            }
+        }
+
+        switch($return) {
+            case self::RETURN_WEIGHT:
+                return $totalWeight;
+            case self::RETURN_EDGES:
+                return $visited;
+            case self::RETURN_VERTICES:
+                return $vertices;
+        }
+
+        return $totalWeight;
+    }
+
+    public function doubleTree($return = self::RETURN_WEIGHT) {
+        // Create MST
+        $kruskal = $this->kruskal(self::RETURN_ALL);
+        /** @var \SplObjectStorage $mst */
+        $mst = $kruskal['edges'];
+
+        $mst_double = [];
+        // Double Edges / Euler Graph
+        /** @var Edge $edge */
+        foreach($mst as $edge) {
+            $mst_double[$edge->getId()] = $edge;
+            $reversedEdge = $edge->getB()->connect($edge->getA(), $edge->getWeight());
+            $mst_double[$reversedEdge->getId()] = $reversedEdge;
+        }
+        $eulergraph = self::build_from_edges($mst_double, $this->getVertexCount());
+        $eulergraphEdges = $eulergraph->getEdgeList();
+
+        // Build Euler Tour
+        /** @var Edge[] $tour */
+        $tour = [];
+        $currentEdge = $eulergraphEdges->current();
+        $tour[$currentEdge->getId()] = $currentEdge;
+
+        while (count($tour) < count($mst_double)) {
+            /** @var \SplObjectStorage $neighbors */
+            $neighbors = $currentEdge->getB()->getNeighborEdges();
+            $neighbors->addAll($currentEdge->getA()->getNeighborEdges());
+
+            foreach ($neighbors as $neighborEdge) {
+                $graphWithoutNeighborEdge = self::build_from_edges(array_diff_key($mst_double, [$neighborEdge]), $this->getVertexCount());
+                $dfs = $graphWithoutNeighborEdge->dfs($graphWithoutNeighborEdge->getVertex());
+                // If A and B are in the DFS wood, we can select this edge
+                if ((array_key_exists($neighborEdge->getA()->getId(), $dfs) && array_key_exists($neighborEdge->getB()->getId(), $dfs)) && !array_key_exists($neighborEdge->getId(), $tour)) {
+                    $tour[$neighborEdge->getId()] = $neighborEdge;
+                    $currentEdge = $neighborEdge;
+                    break;
+                }
+            }
+        }
+
+        // Go through Euler Tour and remove Edges that contain already visited nodes
+        $visited = [];
+        $tspEdges = [];
+        $totalWeight = 0;
+        $first = reset($tour);
+        $shortcut = false;
+
+        $visited[$first->getA()->getId()] = $first->getA();
+        while (list(, $edge) = each($tour)) {
+            $a = $edge->getA();
+            while (array_key_exists($edge->getB()->getId(), $visited)) {
+                list(,$edge) = each($tour);
+                if (is_null($edge)) {
+                    break 2;
+                }
+                $shortcut = true;
+            }
+            if ($shortcut) {
+                // create a shortcut edge not yet present in the current graph, using the weight from the "original full" graph
+                $shortcutEdge = $a->connect($edge->getB(), $this->getVertex($a->getId())->getIndexedNeighbors()[$a->getId().'_'.$edge->getB()->getId()]->getWeight());
+                $tspEdges[$shortcutEdge->getId()] = $shortcutEdge;
+                $visited[$shortcutEdge->getA()->getId()] = $shortcutEdge->getA();
+                $totalWeight += $shortcutEdge->getWeight();
+                $shortcut = false;
+            }
+
+            $tspEdges[$edge->getId()] = $edge;
+            $visited[$edge->getB()->getId()] = $edge->getB();
+            $totalWeight += $edge->getWeight();
+        }
+
+        switch($return) {
+            case self::RETURN_WEIGHT:
+                return $totalWeight;
+            case self::RETURN_EDGES:
+                return $tspEdges;
+            case self::RETURN_VERTICES:
+                return $visited;
+        }
+
         return $totalWeight;
     }
 
@@ -353,12 +568,31 @@ class Graph {
     }
 
     /**
+     * Getter for Edge List
+     *
+     * @return \SplObjectStorage
+     */
+    public function &getEdgeList() {
+        $this->edgeList->rewind();
+        return $this->edgeList;
+    }
+
+    /**
      * Set the priority edge list from external
      *
      * @param \SplPriorityQueue $priorityEdgeList
      */
     public function setPriorityEdgeList(\SplPriorityQueue $priorityEdgeList) {
         $this->priorityEdgeList = $priorityEdgeList;
+    }
+
+    /**
+     * Set the vertex list from external
+     *
+     * @param array $vertices
+     */
+    public function setVertexList(array $vertices) {
+        $this->vertexList = $vertices;
     }
 
     /**
