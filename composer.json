@@ -13,7 +13,7 @@
     "psr-4": { "Xenzilla\\Graph\\": "src/" }
   },
   "autoload-dev": {
-    "psr-4": { "Xenzilla\\Graph\\Test\\": "test/" }
+    "psr-4": { "Xenzilla\\Graph\\": "test/" }
   },
   "require-dev": {
     "phpunit/phpunit": "4.5.*"
