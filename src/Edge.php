@@ -42,7 +42,7 @@ class Edge {
      * @param Vertex $b
      * @param int $weight
      */
-    public function __construct(Vertex $a, Vertex $b, $weight = 0) {
+    public function __construct(Vertex $a, Vertex $b, $weight = -1) {
         $this->vertexA = $a;
         $this->vertexB = $b;
         $this->weight  = $weight;

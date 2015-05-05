@@ -10,23 +10,11 @@ namespace Xenzilla\Graph;
 
 class Vertex {
 
-    /**
-     * List of neighboring Edges
-     * @var \SplObjectStorage
-     */
-    protected $neighbors;
-
-    /**
+     /**
      * Array of indexed neighbors
      * @var Edge[]
      */
-    protected $indexedNeighbors = [];
-
-    /**
-     * List of neighboring Edges sorted by minimal weight
-     * @var \SplPriorityQueue
-     */
-    protected $priorityNeighbors;
+    protected $neighbors = [];
 
     /**
      * numeric identifier
@@ -35,14 +23,17 @@ class Vertex {
     protected $id;
 
     /**
-     * Init neighbors "list" as SplObjectStorage
-     * Optionally set the numeric identifier
+     * visited flag
+     * @var bool
+     */
+    protected $visited = false;
+
+    /**
+     * Set the numeric identifier and create a new Vertex
      *
      * @param int $id
      */
-    public function __construct($id = -1) {
-        $this->neighbors = new \SplObjectStorage();
-        $this->priorityNeighbors = new \SplPriorityQueue();
+    public function __construct($id) {
         $this->id = intval($id);
     }
 
@@ -68,61 +59,73 @@ class Vertex {
      * @param Edge $neighbor
      */
     private function connectEdge(Edge $neighbor) {
-        $this->neighbors->attach($neighbor);
-        $this->indexedNeighbors[$neighbor->getId()] = $neighbor;
-        // SplPriorityQueue is using a MaxHeap, we want the minimum value first, so order by inverse
-        if ($neighbor->getWeight() == 0) {
-            $priority = 0;
-        }
-        else {
-            $priority = 1 / $neighbor->getWeight();
-        }
-        $this->priorityNeighbors->insert($neighbor, $priority);
+        $this->neighbors[$neighbor->getId()] = $neighbor;
     }
 
     /**
      * Get all neighboring vertices (unique)
      *
-     * @return \SplObjectStorage
+     * @return Vertex[]
      */
     public function getNeighborVertices() {
-        $neighborVertices = new \SplObjectStorage();
-        for ($i = 0; $i < $this->neighbors->count(); $i++) {
-            $neighborEdge = $this->neighbors->current();
-            $this->neighbors->next();
-            $neighborVertices->attach($neighborEdge->getB());
+        $neighborVertices = [];
+        foreach ($this->neighbors as $edge) {
+            $neighborVertices[$edge->getB()->getId()] = $edge->getB();
         }
-        $neighborVertices->rewind();
 
         return $neighborVertices;
     }
 
     /**
-     * Neighbor edge list
-     *
-     * @return \SplObjectStorage
-     */
-    public function getNeighborEdges() {
-        $this->neighbors->rewind();
-        return $this->neighbors;
-    }
-
-    /**
-     * Indexed neighbor edge list
+     * Get an unordered list of neighbors
      *
      * @return Edge[]
      */
-    public function getIndexedNeighbors() {
-        return $this->indexedNeighbors;
+    public function getNeighborEdges() {
+         return $this->neighbors;
     }
 
     /**
-     * Sorted Neighbor edge list
+     * Get an ordered-by-weight list of neighbors
      *
      * @return \SplPriorityQueue
      */
     public function getPriorityNeighborEdges() {
-        return $this->priorityNeighbors;
+        $priorityList = new \SplPriorityQueue();
+        foreach ($this->neighbors as $edge) {
+            $priority = ($edge->getWeight() == 0) ? 0 : 1/$edge->getWeight();
+            $priorityList->insert($edge, $priority);
+        }
+        return $priorityList;
+    }
+
+    /**
+     * Get the visited state of this vertex
+     *
+     * @return bool
+     */
+    public function visited() {
+        return $this->visited;
+    }
+
+    /**
+     * Set the visited state and return the vertex
+     *
+     * @return $this
+     */
+    public function visit() {
+        $this->visited = true;
+        return $this;
+    }
+
+    /**
+     * Set the visited state to false and return the vertex
+     *
+     * @return $this
+     */
+    public function unvisit() {
+        $this->visited = false;
+        return $this;
     }
 
     /**
