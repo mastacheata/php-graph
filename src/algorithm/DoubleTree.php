@@ -6,7 +6,9 @@
  */
 
 namespace Xenzilla\Graph\Algorithm;
-use Xenzilla\Graph\Graph, Xenzilla\Graph\Edge;
+
+use Xenzilla\Graph\Edge;
+use Xenzilla\Graph\Graph;
 
 class DoubleTree {
 
@@ -28,21 +30,23 @@ class DoubleTree {
      * @param Graph $graph
      */
     public function findTour(Graph $graph) {
-        $kruskal = new Kruskal();
-        $kruskal->findMST($graph);
-        $mst = $kruskal->getGraph();
+//        $kruskal = new Kruskal();
+//        $kruskal->findMST($graph);
+//        $mst = $kruskal->getGraph();
 
-        $startVertex = $mst->getVertex(0);
+        $prim = new Prim();
+        $mst = $prim->prim($graph->getVertex(0), $graph);
+
         $dfs = new DepthFirstSearch();
-        $reachableVertices = $dfs->findReachableVertices($startVertex);
+        $reachableVertices = $dfs->findReachableVertices($mst->getVertex(0));
 
         for ($key = 0; $key < count($reachableVertices)-1; $key++) {
-            $edge = $graph->getEdge($reachableVertices[$key], $reachableVertices[$key+1]);
+            $edge = $graph->getEdge($reachableVertices[$key]->getId(), $reachableVertices[$key + 1]->getId());
             $this->tour[] = $edge;
             $this->cost += $edge->getWeight();
         }
 
-        $lastEdge = $graph->getEdge(end($reachableVertices), reset($reachableVertices));
+        $lastEdge = $graph->getEdge(end($reachableVertices)->getId(), reset($reachableVertices)->getId());
         $this->tour[] = $lastEdge;
         $this->cost += $lastEdge->getWeight();
     }
@@ -50,7 +54,7 @@ class DoubleTree {
     /**
      * Get the Edges part of this tour
      *
-     * @return \Xenzilla\Graph\Edge[]
+     * @return Edge[]
      */
     public function getTour() {
         return $this->tour;

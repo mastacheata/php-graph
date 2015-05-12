@@ -172,31 +172,31 @@ class Graph {
      */
     public function addAll(array $edgeList, $directed = self::DIRECTED) {
         foreach ($edgeList as $edge) {
-            $this->edgeList[$edge->getId()] = $edge;
-            $edgeA = $edge->getA();
+            $aID = $edge->getA()->getId();
+            $bID = $edge->getB()->getId();
+
+            if (array_key_exists($aID, $this->vertexList)) {
+                $edgeA = $this->vertexList[$aID];
+            } else {
+                $edgeA = new Vertex($edge->getA()->getId());
+            }
             $this->vertexList[$edgeA->getId()] = $edgeA;
-            $edgeB = $edge->getB();
+
+
+            if (array_key_exists($bID, $this->vertexList)) {
+                $edgeB = $this->vertexList[$bID];
+            } else {
+                $edgeB = new Vertex($edge->getB()->getId());
+            }
             $this->vertexList[$edgeB->getId()] = $edgeB;
+
+            $newEdge = $edgeA->connect($edgeB, $edge->getWeight());
+            $this->edgeList[$newEdge->getId()] = $newEdge;
 
             if (!$directed) {
                 $edgeBtoA = $edgeB->connect($edgeA, $edge->getWeight());
                 $this->edgeList[$edgeBtoA->getId()] = $edgeBtoA;
             }
-        }
-    }
-
-    /**
-     * Get either the specified vertex or a random vertex from this graph
-     *
-     * @param int $id
-     * @return Vertex
-     */
-    public function getVertex($id = -1) {
-        if ($id === -1) {
-            return $this->vertexList[array_rand($this->vertexList)];
-        }
-        else {
-            return $this->vertexList[$id];
         }
     }
 
@@ -244,13 +244,26 @@ class Graph {
     }
 
     /**
+     * Get the list of edges composing this Graph
+     *
+     * @return Edge[]
+     */
+    public function getEdgeList()
+    {
+        return $this->edgeList;
+    }
+
+    /**
      * Find the Edge between two given Vertices in this Graph
      *
-     * @param Vertex $from
-     * @param Vertex $to
+     * @param int $from from-Vertex Id
+     * @param int $to to-Vertex Id
      * @return null|Edge
      */
-    public function getEdge(Vertex $from, Vertex $to) {
+    public function getEdge($from, $to)
+    {
+        $from = $this->getVertex($from);
+        $to = $this->getVertex($to);
         $fromNeighbors = $from->getNeighborEdges();
         foreach($fromNeighbors as $neighborEdge) {
             if ($neighborEdge->getB()->getId() === $to->getId()) {
@@ -259,5 +272,20 @@ class Graph {
         }
 
         return null;
+    }
+
+    /**
+     * Get either the specified vertex or a random vertex from this graph
+     *
+     * @param int $id
+     * @return Vertex
+     */
+    public function getVertex($id = -1)
+    {
+        if ($id === -1) {
+            return $this->vertexList[array_rand($this->vertexList)];
+        } else {
+            return $this->vertexList[$id];
+        }
     }
 }

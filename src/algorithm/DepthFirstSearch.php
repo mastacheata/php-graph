@@ -6,6 +6,7 @@
  */
 
 namespace Xenzilla\Graph\Algorithm;
+
 use Xenzilla\Graph\Vertex;
 
 class DepthFirstSearch {
@@ -39,7 +40,7 @@ class DepthFirstSearch {
             return;
         }
 
-        $visitList[$startVertex->getId()] = $startVertex;
+        $visitList[] = $startVertex;
         if ($startVertex === $endVertex) {
             $this->vertexFound = true;
             return;

@@ -61,48 +61,6 @@ class GraphAndAlgorithm {
     }
 
     /**
-     * Build a new Graph from an Edge set
-     *
-     * @param Edge[] $edgeSet
-     * @param int $count
-     * @param bool $directed
-     * @return GraphAndAlgorithm
-     */
-    public static function build_from_edges(array $edgeSet, $count, $directed = TRUE) {
-        $graph = new GraphAndAlgorithm($count);
-        $edgeList = $graph->getEdgeList();
-        /** @var Vertex[] $vertices */
-        $vertices = $graph->getVertexList();
-
-        foreach($edgeSet as $edge) {
-            $from = $edge->getA()->getId();
-            if (!array_key_exists($from, $vertices)) {
-                $vertices[$from] = new Vertex($from);
-            }
-            $to = $edge->getB()->getId();
-            if (!array_key_exists($to, $vertices)) {
-                $vertices[$to] = new Vertex($to);
-            }
-
-            $weight = $edge->getWeight();
-
-            $edgeA = $vertices[$from]->connect($vertices[$to], $weight);
-            $edgeList->attach($edgeA);
-
-            // if undirected add the opposite link implicitly
-            if (!$directed) {
-                $edgeB = $vertices[$to]->connect($vertices[$from], $weight);
-                $edgeList->attach($edgeB);
-            }
-        }
-
-        ksort($vertices);
-        $graph->setVertexList($vertices);
-
-        return $graph;
-    }
-
-    /**
      * Import Graph from a text file
      *
      * @param string $filename file to import
@@ -170,6 +128,26 @@ class GraphAndAlgorithm {
                 $edgeList->attach($vertices[$to]->connect($vertices[$from]));
             }
         }
+    }
+
+    /**
+     * Getter for Vertex list
+     *
+     * @return array
+     */
+    public function &getVertexList()
+    {
+        return $this->vertexList;
+    }
+
+    /**
+     * Set the vertex list from external
+     *
+     * @param array $vertices
+     */
+    public function setVertexList(array $vertices)
+    {
+        $this->vertexList = $vertices;
     }
 
     /**
@@ -247,28 +225,13 @@ class GraphAndAlgorithm {
     }
 
     /**
-     * Perform a depth-first-search starting at the supplied vertex
+     * Set the priority edge list from external
      *
-     * @param Vertex $v
-     * @param array $visited
-     * @return Vertex[]
+     * @param \SplPriorityQueue $priorityEdgeList
      */
-    public function dfs(Vertex $v, array $visited = []) {
-        $visited[$v->getId()] = $v;
-        $neighbors = $v->getNeighborEdges();
-
-        foreach ($neighbors as $neighborEdge) {
-            if (is_null($neighborEdge)) {
-                continue;
-            }
-
-            /** @var Vertex $b */
-            $b = $neighborEdge->getB();
-            if (!array_key_exists($b->getId(), $visited)) {
-                $visited = $this->dfs($b, $visited);
-            }
-        }
-        return $visited;
+    public function setPriorityEdgeList(\SplPriorityQueue $priorityEdgeList)
+    {
+        $this->priorityEdgeList = $priorityEdgeList;
     }
 
     /**
@@ -362,52 +325,22 @@ class GraphAndAlgorithm {
         return $totalWeight;
     }
 
-
     /**
-     * Find an MST for a given Graph using the algorithm of Kruskal
-     * Makes use of a UnionFind structure @see UnionFind
-     * returns the total weight of the mst
+     * Get a vertex
+     * If an id is specified, get the vertex with that id
+     * otherwise return a random vertex
      *
-     * @param int $return
-     * @return float|\SplObjectStorage
-     * @throws \ErrorException
+     * @param int $id
+     * @return Vertex
      */
-    public function kruskal($return = self::RETURN_WEIGHT) {
-        $nodes = [];
-        $vertices = [];
-        $edgeSet = new \SplObjectStorage();
-        $totalWeight = 0;
-        $priorityEdgeList = clone $this->priorityEdgeList;
+    public function getVertex($id = -1)
+    {
 
-        foreach($this->vertexList as $vertex) {
-            $nodes[$vertex->getId()] = new Node($vertex);
+        if ($id < 0) {
+            return $this->vertexList[rand(0, $this->vertexCount - 1)];
         }
 
-        while ($priorityEdgeList->valid()) {
-            $currentEdge = $priorityEdgeList->extract();
-            $nodeA = $nodes[$currentEdge->getA()->getId()];
-            $nodeB = $nodes[$currentEdge->getB()->getId()];
-            if (UnionFind::find($nodeA) !== UnionFind::find($nodeB)) {
-                $edgeSet->attach($currentEdge);
-                $vertices[$currentEdge->getA()->getId()] = $currentEdge->getA();
-                $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
-                $totalWeight += $currentEdge->getWeight();
-                UnionFind::union($nodeA, $nodeB);
-            }
-        }
-
-        switch($return) {
-            case self::RETURN_WEIGHT:
-                return $totalWeight;
-            case self::RETURN_EDGES:
-                return $edgeSet;
-            case self::RETURN_VERTICES:
-                return $vertices;
-            case self::RETURN_ALL:
-                return ['edges' => $edgeSet, 'vertices' => $vertices, 'weight' => $totalWeight];
-        }
-
-        return $totalWeight;
+        return $this->vertexList[$id];
     }
 
     /**
@@ -460,6 +393,16 @@ class GraphAndAlgorithm {
         }
 
         return $totalWeight;
+    }
+
+    /**
+     * Getter for vertex count
+     *
+     * @return int
+     */
+    public function getVertexCount()
+    {
+        return $this->vertexCount;
     }
 
     public function doubleTree($return = self::RETURN_WEIGHT) {
@@ -546,25 +489,94 @@ class GraphAndAlgorithm {
     }
 
     /**
-     * Return an Edge list representation as String
-     * @return string
+     * Find an MST for a given Graph using the algorithm of Kruskal
+     * Makes use of a UnionFind structure @see UnionFind
+     * returns the total weight of the mst
+     *
+     * @param int $return
+     * @return float|\SplObjectStorage
+     * @throws \ErrorException
      */
-    public function __toString() {
-        $edgeList = '';
-        foreach($this->edgeList as $edge) {
-            $edgeList .= print_r($edge->getA() . ' -> ' . $edge->getB() . ' # ' . $edge->getWeight(), true). "\n";
+    public function kruskal($return = self::RETURN_WEIGHT)
+    {
+        $nodes = [];
+        $vertices = [];
+        $edgeSet = new \SplObjectStorage();
+        $totalWeight = 0;
+        $priorityEdgeList = clone $this->priorityEdgeList;
+
+        foreach ($this->vertexList as $vertex) {
+            $nodes[$vertex->getId()] = new Node($vertex);
         }
 
-        return $edgeList;
+        while ($priorityEdgeList->valid()) {
+            $currentEdge = $priorityEdgeList->extract();
+            $nodeA = $nodes[$currentEdge->getA()->getId()];
+            $nodeB = $nodes[$currentEdge->getB()->getId()];
+            if (UnionFind::find($nodeA) !== UnionFind::find($nodeB)) {
+                $edgeSet->attach($currentEdge);
+                $vertices[$currentEdge->getA()->getId()] = $currentEdge->getA();
+                $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
+                $totalWeight += $currentEdge->getWeight();
+                UnionFind::union($nodeA, $nodeB);
+            }
+        }
+
+        switch ($return) {
+            case self::RETURN_WEIGHT:
+                return $totalWeight;
+            case self::RETURN_EDGES:
+                return $edgeSet;
+            case self::RETURN_VERTICES:
+                return $vertices;
+            case self::RETURN_ALL:
+                return ['edges' => $edgeSet, 'vertices' => $vertices, 'weight' => $totalWeight];
+        }
+
+        return $totalWeight;
     }
 
     /**
-     * Set the edge list from external
+     * Build a new Graph from an Edge set
      *
-     * @param \SplObjectStorage $edgeList
+     * @param Edge[] $edgeSet
+     * @param int $count
+     * @param bool $directed
+     * @return GraphAndAlgorithm
      */
-    public function setEdgeList(\SplObjectStorage $edgeList) {
-        $this->edgeList = $edgeList;
+    public static function build_from_edges(array $edgeSet, $count, $directed = TRUE)
+    {
+        $graph = new GraphAndAlgorithm($count);
+        $edgeList = $graph->getEdgeList();
+        /** @var Vertex[] $vertices */
+        $vertices = $graph->getVertexList();
+
+        foreach ($edgeSet as $edge) {
+            $from = $edge->getA()->getId();
+            if (!array_key_exists($from, $vertices)) {
+                $vertices[$from] = new Vertex($from);
+            }
+            $to = $edge->getB()->getId();
+            if (!array_key_exists($to, $vertices)) {
+                $vertices[$to] = new Vertex($to);
+            }
+
+            $weight = $edge->getWeight();
+
+            $edgeA = $vertices[$from]->connect($vertices[$to], $weight);
+            $edgeList->attach($edgeA);
+
+            // if undirected add the opposite link implicitly
+            if (!$directed) {
+                $edgeB = $vertices[$to]->connect($vertices[$from], $weight);
+                $edgeList->attach($edgeB);
+            }
+        }
+
+        ksort($vertices);
+        $graph->setVertexList($vertices);
+
+        return $graph;
     }
 
     /**
@@ -578,55 +590,52 @@ class GraphAndAlgorithm {
     }
 
     /**
-     * Set the priority edge list from external
+     * Set the edge list from external
      *
-     * @param \SplPriorityQueue $priorityEdgeList
+     * @param \SplObjectStorage $edgeList
      */
-    public function setPriorityEdgeList(\SplPriorityQueue $priorityEdgeList) {
-        $this->priorityEdgeList = $priorityEdgeList;
+    public function setEdgeList(\SplObjectStorage $edgeList)
+    {
+        $this->edgeList = $edgeList;
     }
 
     /**
-     * Set the vertex list from external
+     * Perform a depth-first-search starting at the supplied vertex
      *
-     * @param array $vertices
+     * @param Vertex $v
+     * @param array $visited
+     * @return Vertex[]
      */
-    public function setVertexList(array $vertices) {
-        $this->vertexList = $vertices;
+    public function dfs(Vertex $v, array $visited = [])
+    {
+        $visited[$v->getId()] = $v;
+        $neighbors = $v->getNeighborEdges();
+
+        foreach ($neighbors as $neighborEdge) {
+            if (is_null($neighborEdge)) {
+                continue;
+            }
+
+            /** @var Vertex $b */
+            $b = $neighborEdge->getB();
+            if (!array_key_exists($b->getId(), $visited)) {
+                $visited = $this->dfs($b, $visited);
+            }
+        }
+        return $visited;
     }
 
     /**
-     * Getter for Vertex list
-     *
-     * @return array
+     * Return an Edge list representation as String
+     * @return string
      */
-    public function &getVertexList() {
-        return $this->vertexList;
-    }
-
-    /**
-     * Getter for vertex count
-     *
-     * @return int
-     */
-    public function getVertexCount() {
-        return $this->vertexCount;
-    }
-
-    /**
-     * Get a vertex
-     * If an id is specified, get the vertex with that id
-     * otherwise return a random vertex
-     *
-     * @param int $id
-     * @return Vertex
-     */
-    public function getVertex($id = -1) {
-
-        if ($id < 0) {
-            return $this->vertexList[rand(0, $this->vertexCount-1)];
+    public function __toString()
+    {
+        $edgeList = '';
+        foreach ($this->edgeList as $edge) {
+            $edgeList .= print_r($edge->getA() . ' -> ' . $edge->getB() . ' # ' . $edge->getWeight(), true) . "\n";
         }
 
-        return $this->vertexList[$id];
+        return $edgeList;
     }
 }

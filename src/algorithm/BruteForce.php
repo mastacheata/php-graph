@@ -6,7 +6,10 @@
  */
 
 namespace Xenzilla\Graph\Algorithm;
-use Xenzilla\Graph\Graph, Xenzilla\Graph\Vertex;
+
+use Xenzilla\Graph\Edge;
+use Xenzilla\Graph\Graph;
+use Xenzilla\Graph\Vertex;
 
 class BruteForce {
     /**
@@ -83,15 +86,22 @@ class BruteForce {
         $currentVertex->unvisit();
     }
 
+    protected function isVisited(Vertex $vertex)
+    {
+        return $vertex->visited();
+    }
+
+    /**
+     * @return Edge[]
+     */
     public function getMinimalTour() {
         return $this->minimalTour;
     }
 
+    /**
+     * @return float
+     */
     public function getMinimalCost() {
         return $this->minimalCost;
-    }
-
-    protected function isVisited(Vertex $vertex) {
-        return $vertex->visited();
     }
 }

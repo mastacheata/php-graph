@@ -72,7 +72,7 @@ class Kruskal {
 
     public function getGraph() {
         $mstGraph = new Graph();
-        $mstGraph->addAll($this->edges);
+        $mstGraph->addAll($this->edges, true);
 
         return $mstGraph;
     }

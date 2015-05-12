@@ -29,6 +29,12 @@ class Vertex {
     protected $visited = false;
 
     /**
+     * Parent Vertex in Graph
+     * @var Vertex
+     */
+    protected $parent = null;
+
+    /**
      * Set the numeric identifier and create a new Vertex
      *
      * @param int $id
@@ -74,6 +80,16 @@ class Vertex {
         }
 
         return $neighborVertices;
+    }
+
+    /**
+     * Get the numeric identifier of this vertex
+     *
+     * @return int
+     */
+    public function getId()
+    {
+        return $this->id;
     }
 
     /**
@@ -129,12 +145,23 @@ class Vertex {
     }
 
     /**
-     * Get the numeric identifier of this vertex
+     * Get the parent Vertex in the Shortest-Path-Tree
      *
-     * @return int
+     * @return Vertex
      */
-    public function getId() {
-        return $this->id;
+    public function getParent()
+    {
+        return $this->parent;
+    }
+
+    /**
+     * Set the parent Vertex in the Shortest-Path-Tree
+     *
+     * @param Vertex $parent
+     */
+    public function setParent(Vertex $parent)
+    {
+        $this->parent = $parent;
     }
 
     /**
