@@ -43,12 +43,12 @@ class DoubleTree {
         for ($key = 0; $key < count($reachableVertices)-1; $key++) {
             $edge = $graph->getEdge($reachableVertices[$key]->getId(), $reachableVertices[$key + 1]->getId());
             $this->tour[] = $edge;
-            $this->cost += $edge->getWeight();
+            $this->cost += $edge->getCapacity();
         }
 
         $lastEdge = $graph->getEdge(end($reachableVertices)->getId(), reset($reachableVertices)->getId());
         $this->tour[] = $lastEdge;
-        $this->cost += $lastEdge->getWeight();
+        $this->cost += $lastEdge->getCapacity();
     }
 
     /**

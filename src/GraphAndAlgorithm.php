@@ -309,7 +309,7 @@ class GraphAndAlgorithm {
                 }
             }
             $edgeSet->attach($currentEdge);
-            $totalWeight += $currentEdge->getWeight();
+            $totalWeight += $currentEdge->getCapacity();
             $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
         }
 
@@ -368,8 +368,8 @@ class GraphAndAlgorithm {
             }
             while (array_key_exists($current->getId(), $vertices));
 
-            $visited->attach($current, $currentEdge->getWeight());
-            $totalWeight += $currentEdge->getWeight();
+            $visited->attach($current, $currentEdge->getCapacity());
+            $totalWeight += $currentEdge->getCapacity();
             $vertices[$current->getId()] = $current;
         }
         while ($visited->count() < $this->getVertexCount());
@@ -378,7 +378,7 @@ class GraphAndAlgorithm {
         $lastNeighbors = $current->getNeighborEdges();
         foreach($lastNeighbors as $neighborEdge) {
             if ($neighborEdge->getB()->getId() === $startV->getId()) {
-                $totalWeight += $neighborEdge->getWeight();
+                $totalWeight += $neighborEdge->getCapacity();
                 break;
             }
         }
@@ -416,7 +416,7 @@ class GraphAndAlgorithm {
         /** @var Edge $edge */
         foreach($mst as $edge) {
             $mst_double[$edge->getId()] = $edge;
-            $reversedEdge = $edge->getB()->connect($edge->getA(), $edge->getWeight());
+            $reversedEdge = $edge->getB()->connect($edge->getA(), $edge->getCapacity());
             $mst_double[$reversedEdge->getId()] = $reversedEdge;
         }
         $eulergraph = self::build_from_edges($mst_double, $this->getVertexCount());
@@ -464,16 +464,16 @@ class GraphAndAlgorithm {
             }
             if ($shortcut) {
                 // create a shortcut edge not yet present in the current graph, using the weight from the "original full" graph
-                $shortcutEdge = $a->connect($edge->getB(), $this->getVertex($a->getId())->getNeighborEdges()[$a->getId().'_'.$edge->getB()->getId()]->getWeight());
+                $shortcutEdge = $a->connect($edge->getB(), $this->getVertex($a->getId())->getNeighborEdges()[$a->getId() . '_' . $edge->getB()->getId()]->getCapacity());
                 $tspEdges[$shortcutEdge->getId()] = $shortcutEdge;
                 $visited[$shortcutEdge->getA()->getId()] = $shortcutEdge->getA();
-                $totalWeight += $shortcutEdge->getWeight();
+                $totalWeight += $shortcutEdge->getCapacity();
                 $shortcut = false;
             }
 
             $tspEdges[$edge->getId()] = $edge;
             $visited[$edge->getB()->getId()] = $edge->getB();
-            $totalWeight += $edge->getWeight();
+            $totalWeight += $edge->getCapacity();
         }
 
         switch($return) {
@@ -561,7 +561,7 @@ class GraphAndAlgorithm {
                 $vertices[$to] = new Vertex($to);
             }
 
-            $weight = $edge->getWeight();
+            $weight = $edge->getCapacity();
 
             $edgeA = $vertices[$from]->connect($vertices[$to], $weight);
             $edgeList->attach($edgeA);

@@ -61,7 +61,7 @@ class Prim
             }
             $edges[$currentEdge->getId()] = $currentEdge;
 //            array_shift($edges);
-            $totalWeight += $currentEdge->getWeight();
+            $totalWeight += $currentEdge->getCapacity();
             $vertices[$currentEdge->getB()->getId()] = $currentEdge->getB();
         }
 

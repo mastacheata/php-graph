@@ -49,23 +49,16 @@ class Vertex {
      * optionally set the weight of this edge
      *
      * @param Vertex $to
-     * @param int $weight
+     * @param float $capacity
+     * @param float $cost
      * @return Edge
      */
-    public function connect(Vertex $to, $weight = 0) {
-        $edge = new Edge($this, $to, $weight);
-        $this->connectEdge($edge);
+    public function connect(Vertex $to, $capacity = 0.0, $cost = 0.0)
+    {
+        $edge = new Edge($this, $to, $capacity, $cost);
+        $this->neighbors[$edge->getId()] = $edge;
 
         return $edge;
-    }
-
-    /**
-     * Connect this vertex to another one by adding the connecting edge
-     *
-     * @param Edge $neighbor
-     */
-    private function connectEdge(Edge $neighbor) {
-        $this->neighbors[$neighbor->getId()] = $neighbor;
     }
 
     /**
@@ -109,7 +102,7 @@ class Vertex {
     public function getPriorityNeighborEdges() {
         $priorityList = new \SplPriorityQueue();
         foreach ($this->neighbors as $edge) {
-            $priority = ($edge->getWeight() == 0) ? 0 : 1/$edge->getWeight();
+            $priority = ($edge->getCapacity() == 0) ? 0 : 1 / $edge->getCapacity();
             $priorityList->insert($edge, $priority);
         }
         return $priorityList;
@@ -142,6 +135,11 @@ class Vertex {
     public function unvisit() {
         $this->visited = false;
         return $this;
+    }
+
+    public function removeNeighborEdge(Edge $edge)
+    {
+        unset($this->neighbors[$edge->getId()]);
     }
 
     /**

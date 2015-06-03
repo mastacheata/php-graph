@@ -62,7 +62,7 @@ class Dijkstra extends AbstractShortestPath
     private function distanceUpdate(Edge $edge)
     {
         $edgeA = $edge->getA();
-        $newDistance = $this->distances[$edgeA->getId()] + $edge->getWeight();
+        $newDistance = $this->distances[$edgeA->getId()] + $edge->getCost();
         $edgeB = $edge->getB();
 
         if ($newDistance < $this->distances[$edgeB->getId()]) {

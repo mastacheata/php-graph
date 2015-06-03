@@ -190,11 +190,11 @@ class Graph {
             }
             $this->vertexList[$edgeB->getId()] = $edgeB;
 
-            $newEdge = $edgeA->connect($edgeB, $edge->getWeight());
+            $newEdge = $edgeA->connect($edgeB, $edge->getCapacity());
             $this->edgeList[$newEdge->getId()] = $newEdge;
 
             if (!$directed) {
-                $edgeBtoA = $edgeB->connect($edgeA, $edge->getWeight());
+                $edgeBtoA = $edgeB->connect($edgeA, $edge->getCapacity());
                 $this->edgeList[$edgeBtoA->getId()] = $edgeBtoA;
             }
         }
@@ -208,7 +208,7 @@ class Graph {
     public function getPriorityEdgeList() {
         $priorityList = new \SplPriorityQueue();
         foreach ($this->edgeList as $edge) {
-            $priority = ($edge->getWeight() == 0) ? 0 : 1/$edge->getWeight();
+            $priority = ($edge->getCapacity() == 0) ? 0 : 1 / $edge->getCapacity();
             $priorityList->insert($edge, $priority);
         }
         return $priorityList;
@@ -287,5 +287,24 @@ class Graph {
         } else {
             return $this->vertexList[$id];
         }
+    }
+
+    public function addEdge(Edge $edge)
+    {
+        $this->edgeList[$edge->getId()] = $edge;
+    }
+
+    public function removeEdge(Edge $edge)
+    {
+        $edge = $this->edgeList[$edge->getId()];
+        $edge->getA()->removeNeighborEdge($edge);
+        $edge->getB()->removeNeighborEdge($edge);
+
+        unset($this->edgeList[$edge->getId()]);
+    }
+
+    public function __clone()
+    {
+
     }
 }

@@ -17,7 +17,7 @@ class MooreBellmanFord extends AbstractShortestPath
         for ($i = 0; $i < count($this->graph->getVertexList()) - 1; $i++) {
             foreach ($this->graph->getEdgeList() as $edge) {
                 $edgeA = $edge->getA();
-                $newDistance = $this->distances[$edgeA->getId()] + $edge->getWeight();
+                $newDistance = $this->distances[$edgeA->getId()] + $edge->getCost();
                 $edgeB = $edge->getB();
                 if ($newDistance < $this->distances[$edgeB->getId()]) {
                     $this->distances[$edgeB->getId()] = $newDistance;
@@ -28,7 +28,7 @@ class MooreBellmanFord extends AbstractShortestPath
 
         foreach ($this->graph->getEdgeList() as $edge) {
             $edgeA = $edge->getA();
-            $newDistance = $this->distances[$edgeA->getId()] + $edge->getWeight();
+            $newDistance = $this->distances[$edgeA->getId()] + $edge->getCost();
             $edgeB = $edge->getB();
             if ($newDistance < $this->distances[$edgeB->getId()]) {
                 throw new \Exception('Negative Cycle found');

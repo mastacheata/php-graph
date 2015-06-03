@@ -69,7 +69,7 @@ class BruteForce {
         foreach ($currentVertex->getNeighborEdges() as $edge) {
             $currentNeighbor = $edge->getB();
             $currentTour[$edge->getId()] = $edge;
-            $this->currentCost += $edge->getWeight();
+            $this->currentCost += $edge->getCapacity();
 
             if ($currentNeighbor === $this->startVertex && count($currentTour) === $this->vertexCount && $this->currentCost < $this->minimalCost) {
                 $this->minimalCost = $this->currentCost;
