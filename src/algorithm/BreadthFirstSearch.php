@@ -84,35 +84,4 @@ class BreadthFirstSearch
         }
     }
 
-    /**
-     * @param Vertex $startVertex
-     * @param Vertex $endVertex
-     * @return bool
-     */
-    private function bfs(Vertex $startVertex, Vertex $endVertex = null)
-    {
-        array_unshift($this->queue, $startVertex);
-        $startVertex->visit();
-        $this->visited[] = $startVertex;
-
-        while (!empty($this->queue)) {
-            /** @var Vertex $vertex */
-            $vertex = array_pop($this->queue);
-
-            if ($vertex === $endVertex) {
-                return true;
-            }
-
-            foreach ($vertex->getNeighborVertices() as $neighbor) {
-                if (!$neighbor->visited()) {
-                    $this->parent[$neighbor->getId()] = $vertex;
-                    array_unshift($this->queue, $neighbor);
-                    $neighbor->visit();
-                }
-            }
-        }
-
-        return false;
-    }
-
 }
