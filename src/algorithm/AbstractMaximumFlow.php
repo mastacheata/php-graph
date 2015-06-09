@@ -61,7 +61,7 @@ abstract class AbstractMaximumFlow
     {
         foreach ($path as $edge) {
             $this->updateEdge($edge, $minCapacity);
-            $this->updateResidualEdge($edge, $minCapacity);
+            $this->updateReverseEdge($edge, $minCapacity);
         }
     }
 
@@ -75,7 +75,7 @@ abstract class AbstractMaximumFlow
         }
     }
 
-    protected function updateResidualEdge(Edge $edge, $minCapacity)
+    protected function updateReverseEdge(Edge $edge, $minCapacity)
     {
         $reverseEdge = $this->residualGraph->getEdge($edge->getB()->getId(), $edge->getA()->getId());
         if (!is_null($reverseEdge)) {

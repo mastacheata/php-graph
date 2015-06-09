@@ -55,6 +55,7 @@ class BreadthFirstSearch
                     $this->parent[$neighbor->getId()] = $vertex;
                     array_unshift($this->queue, $neighbor);
                     $neighbor->visit();
+                    $this->visited[] = $neighbor;
                 }
             }
         }

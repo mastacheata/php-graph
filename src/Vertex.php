@@ -35,12 +35,21 @@ class Vertex {
     protected $parent = null;
 
     /**
+     * Node Balance
+     * @var float
+     */
+    protected $balance;
+
+    /**
      * Set the numeric identifier and create a new Vertex
      *
      * @param int $id
+     * @param float $balance (optional)
      */
-    public function __construct($id) {
+    public function __construct($id, $balance = 0.0)
+    {
         $this->id = intval($id);
+        $this->balance = $balance;
     }
 
     /**
@@ -160,6 +169,26 @@ class Vertex {
     public function setParent(Vertex $parent)
     {
         $this->parent = $parent;
+    }
+
+    /**
+     * Get the current balance for this node
+     *
+     * @return float
+     */
+    public function getBalance()
+    {
+        return $this->balance;
+    }
+
+    /**
+     * Set the new balance for this node
+     *
+     * @param float $balance
+     */
+    public function setBalance($balance)
+    {
+        $this->balance = $balance;
     }
 
     /**

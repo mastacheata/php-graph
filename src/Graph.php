@@ -12,6 +12,7 @@ class Graph {
     const EDGE_LIST = 1;
     const ADJACENCY_MATRIX = 2;
     const WEIGHTED_EDGE_LIST = 3;
+    const BALANCED_EDGE_LIST = 4;
 
     const DIRECTED = true;
     const UNDIRECTED = false;
@@ -48,7 +49,7 @@ class Graph {
             $handle = fopen($fileName, 'r');
 
             if ($handle) {
-                $vertexCount = fgets($handle);
+                $vertexCount = intval(trim(fgets($handle)));
                 if ($vertexCount === false) {
                     throw new \Exception('no content', 204);
                 }
@@ -63,6 +64,9 @@ class Graph {
                     case self::WEIGHTED_EDGE_LIST:
                         $this->priorityEdgeList = new \SplPriorityQueue();
                         $this->importWeightedEdgeList($handle, $directed);
+                        break;
+                    case self::BALANCED_EDGE_LIST:
+                        $this->importBalancedEdgeList($handle, $vertexCount);
                         break;
                 }
 
@@ -161,6 +165,31 @@ class Graph {
                 $edgeToFrom = $this->vertexList[$to]->connect($this->vertexList[$from], $weight);
                 $this->edgeList[$edgeToFrom->getId()] = $edgeToFrom;
             }
+        }
+    }
+
+    /**
+     * Import weighted EdgeList with costs and vertex-balances
+     *
+     * @param resource $handle
+     * @param int $vertexCount
+     */
+    public function importBalancedEdgeList($handle, $vertexCount)
+    {
+        // Create Vertices with balances
+        for ($i = 0; $i < $vertexCount; $i++) {
+            $balance = trim(fgets($handle));
+            $vertex = new Vertex($i);
+            $vertex->setBalance($balance);
+            $this->vertexList[$vertex->getId()] = $vertex;
+        }
+
+        // Create edges from remaining lines
+        while ($line = trim(fgets($handle))) {
+            list($from, $to, $cost, $capacity) = explode("\t", $line);
+            $edgeFromTo = $this->vertexList[$from]->connect($this->vertexList[$to], $capacity);
+            $edgeFromTo->setCost($cost);
+            $this->edgeList[$edgeFromTo->getId()] = $edgeFromTo;
         }
     }
 
@@ -278,14 +307,14 @@ class Graph {
      * Get either the specified vertex or a random vertex from this graph
      *
      * @param int $id
-     * @return Vertex
+     * @return Vertex|boolean
      */
     public function getVertex($id = -1)
     {
         if ($id === -1) {
             return $this->vertexList[array_rand($this->vertexList)];
         } else {
-            return $this->vertexList[$id];
+            return array_key_exists($id, $this->vertexList) ? $this->vertexList[$id] : false;
         }
     }
 
@@ -305,6 +334,23 @@ class Graph {
 
     public function __clone()
     {
+        $this->vertexList = [];
+        foreach ($this->edgeList as $edge) {
+            $a = $edge->getA();
+            $b = $edge->getB();
 
+            $vertexA = $this->getVertex($a->getId()) ?: new Vertex($a->getId(), $a->getBalance());
+            $vertexB = $this->getVertex($b->getId()) ?: new Vertex($b->getId(), $b->getBalance());
+
+
+            $edgeAB = $vertexA->connect($vertexB);
+            $edgeAB->setFlow($edge->getFlow());
+            $edgeAB->setCapacity($edge->getCapacity());
+            $edgeAB->setCost($edge->getCost());
+
+            $this->edgeList[$edgeAB->getId()] = $edgeAB;
+            $this->vertexList[$a->getId()] = $vertexA;
+            $this->vertexList[$b->getId()] = $vertexB;
+        }
     }
 }
