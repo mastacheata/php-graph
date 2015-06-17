@@ -82,8 +82,18 @@ abstract class AbstractMaximumFlow
             $reverseEdge->setCapacity($reverseEdge->getCapacity() + $minCapacity);
         } else {
             $reverseEdge = $edge->getB()->connect($edge->getA(), $minCapacity);
-            $reverseEdge->setFlow($edge->getFlow() * -1);
+            $reverseEdge->setCost($edge->getCost() * -1);
             $this->residualGraph->addEdge($reverseEdge);
         }
+    }
+
+    /**
+     * Return the residual graph with the updated residual capacities and reverse edges
+     *
+     * @return Graph
+     */
+    public function getUpdatedResidualGraph()
+    {
+        return $this->residualGraph;
     }
 }

@@ -32,6 +32,8 @@ abstract class AbstractMinimumCostFlow
         $this->graph = $graph;
     }
 
+    abstract public function findMinimumCostFlow();
+
     /**
      * Check if the node-balances sum up to zero
      * @return bool
@@ -84,7 +86,8 @@ abstract class AbstractMinimumCostFlow
             $source = $this->graph->getVertex($edge->getA()->getId());
             $sink = $this->graph->getVertex($edge->getB()->getId());
 
-            if (is_null($source) || is_null($sink)) {
+            // Attention: simple OR, if either sink or source is false or if both are false, skip this iteration
+            if (!$source | !$sink) {
                 continue;
             }
 

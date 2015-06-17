@@ -306,12 +306,12 @@ class Graph {
     /**
      * Get either the specified vertex or a random vertex from this graph
      *
-     * @param int $id
+     * @param int|boolean $id
      * @return Vertex|boolean
      */
-    public function getVertex($id = -1)
+    public function getVertex($id = false)
     {
-        if ($id === -1) {
+        if ($id === false) {
             return $this->vertexList[array_rand($this->vertexList)];
         } else {
             return array_key_exists($id, $this->vertexList) ? $this->vertexList[$id] : false;
@@ -341,7 +341,6 @@ class Graph {
 
             $vertexA = $this->getVertex($a->getId()) ?: new Vertex($a->getId(), $a->getBalance());
             $vertexB = $this->getVertex($b->getId()) ?: new Vertex($b->getId(), $b->getBalance());
-
 
             $edgeAB = $vertexA->connect($vertexB);
             $edgeAB->setFlow($edge->getFlow());

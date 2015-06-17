@@ -122,5 +122,6 @@ abstract class AbstractShortestPath
             $this->predecessors[$vertex->getId()] = null;
         }
         $this->distances[$this->start] = 0;
+        $this->predecessors[$this->start] = $this->graph->getVertex($this->start);
     }
 }
