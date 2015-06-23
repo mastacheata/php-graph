@@ -13,6 +13,7 @@ class Graph {
     const ADJACENCY_MATRIX = 2;
     const WEIGHTED_EDGE_LIST = 3;
     const BALANCED_EDGE_LIST = 4;
+    const BIPARTED_EDGE_LIST = 5;
 
     const DIRECTED = true;
     const UNDIRECTED = false;
@@ -68,9 +69,15 @@ class Graph {
                     case self::BALANCED_EDGE_LIST:
                         $this->importBalancedEdgeList($handle, $vertexCount);
                         break;
+                    case self::BIPARTED_EDGE_LIST:
+                        $this->importBipartedEdgeList($handle, $vertexCount);
+                        $vertexCount += 2;
+                        break;
                 }
 
                 if (count($this->vertexList) <> $vertexCount) {
+                    sort($this->vertexList);
+                    sort($this->edgeList);
                     throw new \Exception('imported vertices count doesn\'t match specified vertex count');
                 }
             }
@@ -174,7 +181,7 @@ class Graph {
      * @param resource $handle
      * @param int $vertexCount
      */
-    public function importBalancedEdgeList($handle, $vertexCount)
+    private function importBalancedEdgeList($handle, $vertexCount)
     {
         // Create Vertices with balances
         for ($i = 0; $i < $vertexCount; $i++) {
@@ -191,6 +198,72 @@ class Graph {
             $edgeFromTo->setCost($cost);
             $this->edgeList[$edgeFromTo->getId()] = $edgeFromTo;
         }
+    }
+
+    /**
+     * Import EdgeList and group vertices in two halves
+     *
+     * @param $handle
+     * @param $vertexCount
+     */
+    private function importBipartedEdgeList($handle, $vertexCount)
+    {
+        $groupVertexCount = intval(trim(fgets($handle)));
+
+        $superSource = new Vertex(-1);
+        $this->vertexList[$superSource->getId()] = $superSource;
+        $superSink = new Vertex(-2);
+        $this->vertexList[$superSink->getId()] = $superSink;
+
+        while ($line = trim(fgets($handle))) {
+            list($from, $to) = explode("\t", $line);
+            /**
+             * @var Vertex $vertexA ,
+             * @var Vertex $vertexB
+             */
+            list($vertexA, $vertexB) = $this->importEdge($from, $to);
+            if ($vertexA->getId() < $groupVertexCount) {
+                $superEdgeA = $superSource->connect($vertexA, 1.0);
+            } else {
+                $superEdgeA = $vertexA->connect($superSink, 1.0);
+            }
+            $this->edgeList[$superEdgeA->getId()] = $superEdgeA;
+
+            if ($vertexB->getId() < $groupVertexCount) {
+                $superEdgeB = $superSource->connect($vertexB, 1.0);
+            } else {
+                $superEdgeB = $vertexB->connect($superSink, 1.0);
+            }
+            $this->edgeList[$superEdgeB->getId()] = $superEdgeB;
+        }
+    }
+
+    /**
+     * Import a simple Edge and return the first vertex of that edge
+     *
+     * @param $from
+     * @param $to
+     * @return Vertex
+     */
+    private function importEdge($from, $to)
+    {
+        if (!array_key_exists($from, $this->vertexList)) {
+            $vertexA = new Vertex($from);
+            $this->vertexList[$vertexA->getId()] = $vertexA;
+        } else {
+            $vertexA = $this->vertexList[$from];
+        }
+
+        if (!array_key_exists($to, $this->vertexList)) {
+            $vertexB = new Vertex($to);
+            $this->vertexList[$vertexB->getId()] = $vertexB;
+        } else {
+            $vertexB = $this->vertexList[$to];
+        }
+
+        $edgeFromTo = $vertexA->connect($vertexB, 1.0);
+        $this->edgeList[$edgeFromTo->getId()] = $edgeFromTo;
+        return [$vertexA, $vertexB];
     }
 
     /**

@@ -27,9 +27,6 @@ class CycleCancelling extends AbstractMinimumCostFlow
         /** @var Vertex $superSource */
         /** @var Vertex $superSink */
         list($superSource, $superSink) = $this->addSuperVertices();
-        $superSource = $this->residualGraph->getVertex($superSource->getId());
-        $superSink = $this->residualGraph->getVertex($superSink->getId());
-
 
         $flow = $this->buildCheckFlow($superSource, $superSink);
         if (!$flow) {
