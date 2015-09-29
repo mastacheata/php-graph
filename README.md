@@ -1,10 +1,11 @@
 # php-graph
-Graph (datastructure) library in PHP
+Graph (datastructure) library in PHP  
 Contains generic datastructures as well as implementations of a few common algorithms
 
 
-This is my solution to the practice in SS2015 MMI lecture by Prof. Hoever at FH Aachen
-See: http://www.hoever.fh-aachen.de/index.php?option=com_content&view=article&id=11&Itemid=5
+This is my solution to the MMI practice of summer 2015  
+MMI - Mathematische Methoden der Informatik is a lecture held as part of the Information Systems Engineering Master at FH Aachen by Prof. Georg Hoever  
+For more information see: http://www.hoever.fh-aachen.de/index.php?option=com_content&view=article&id=11&Itemid=5
 
 # Algorithms
 * DFS / Tiefensuche
